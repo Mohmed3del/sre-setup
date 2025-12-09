@@ -1,0 +1,72 @@
+# User Service - Production Environment
+
+fullnameOverride: "image-service"
+
+global:
+  environment: "prod"
+  region: "us-east-1"
+  accountId: "123456789012"
+  team: "backend"
+  costCenter: "platform"
+
+image:
+  ecrRepo: "image-service"
+  buildId: "v2.1.0"
+  pullPolicy: "IfNotPresent"
+
+deployment:
+  replicas: 3
+  containerPort: 8080
+  strategy:
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 1
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+externalSecret:
+  dataFrom:
+    - extract:
+        key: "image-service/prod/secrets"
+
+service:
+  type: "ClusterIP"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: "image.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "prod"
+  - name: SERVICE_NAME
+    value: "image-service"
+
+configMap:
+  data:
+    application-prod.yml: |
+      server:
+        port: 8080
+      spring:
+        datasource:
+          hikari:
+            maximum-pool-size: 10
+      logging:
+        level:
+          com.example.userservice: INFO

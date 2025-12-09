@@ -1,0 +1,18 @@
+{{- if .Values.deployment.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "microservice-chart.fullname" . }}
+  namespace: {{ include "microservice-chart.namespace" . }}
+  labels:
+    {{- include "microservice-chart.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.deployment.pdb.minAvailable }}
+  minAvailable: {{ .Values.deployment.pdb.minAvailable }}
+  {{- else if .Values.deployment.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.deployment.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "microservice-chart.selectorLabels" . | nindent 6 }}
+{{- end }}

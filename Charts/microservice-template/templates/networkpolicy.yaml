@@ -1,0 +1,139 @@
+{{- if .Values.networkPolicy.enabled }}
+---
+# Allow Ingress Traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-{{ .Values.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.metadata.name }}
+    env: {{ .Values.metadata.env }}
+    environment.type: {{ upper .Values.metadata.env }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.metadata.name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow traffic from the same namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.metadata.namespace }}
+      ports:
+        {{- range .Values.service.ports }}
+        - port: {{ .port }}
+          protocol: {{ .protocol | default "TCP" }}
+        {{- end }}
+    
+    # Allow traffic from specific services
+    {{- if .Values.networkPolicy.allowFromServices }}
+    - from:
+        {{- range .Values.networkPolicy.allowFromServices }}
+        - podSelector:
+            matchLabels:
+              app: {{ . }}
+        {{- end }}
+      ports:
+        {{- range .Values.service.ports }}
+        - port: {{ .port }}
+          protocol: {{ .protocol | default "TCP" }}
+        {{- end }}
+    {{- end }}
+    
+    # Allow from ingress namespace (for external traffic)
+    {{- if .Values.networkPolicy.ingressNamespace }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: {{ .Values.networkPolicy.ingressNamespace }}
+      ports:
+        {{- range .Values.service.ports }}
+        - port: {{ .port }}
+          protocol: {{ .protocol | default "TCP" }}
+        {{- end }}
+    {{- end }}
+
+---
+# Allow Egress Traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-{{ .Values.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.metadata.name }}
+    env: {{ .Values.metadata.env }}
+    environment.type: {{ upper .Values.metadata.env }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.metadata.name }}
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    
+    # Allow calls to other services in same namespace
+    {{- if .Values.networkPolicy.allowToServices }}
+    - ports:
+        {{- range .Values.networkPolicy.allowToServices }}
+        - port: {{ .port | default 8080 }}
+          protocol: {{ .protocol | default "TCP" }}
+        {{- end }}
+      to:
+        {{- range .Values.networkPolicy.allowToServices }}
+        - podSelector:
+            matchLabels:
+              app: {{ .service }}
+        {{- end }}
+    {{- end }}
+    
+    # Allow RDS connections
+    {{- if .Values.networkPolicy.rdsCidr }}
+    - ports:
+        {{- range .Values.networkPolicy.rdsPorts }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+      to:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.rdsCidr }}
+    {{- end }}
+    
+    # Allow Redis connections
+    {{- if .Values.networkPolicy.redisCidr }}
+    - ports:
+        {{- range .Values.networkPolicy.redisPorts }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+      to:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.redisCidr }}
+    {{- end }}
+    
+    # Allow AWS services
+    - ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+{{- end }}

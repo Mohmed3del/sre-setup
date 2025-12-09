@@ -1,0 +1,103 @@
+# User Service - Production Environment
+
+fullnameOverride: "auth-service"
+
+global:
+  environment: "prod"
+  region: "us-east-1"
+  accountId: "123456789012"
+  team: "backend"
+  costCenter: "platform"
+
+image:
+  ecrRepo: "auth-service"
+  buildId: "v2.1.0"
+  pullPolicy: "IfNotPresent"
+
+deployment:
+  replicas: 3
+  containerPort: 8080
+  strategy:
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 1
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+externalSecret:
+  dataFrom:
+    - extract:
+        key: "auth-service/prod/secrets"
+
+
+
+ingress:
+  enabled: true
+  hosts:
+    - host: "auth.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "prod"
+  - name: SERVICE_NAME
+    value: "auth-service"
+
+configMap:
+  data:
+    application-prod.yml: |
+      server:
+        port: 8080
+      spring:
+        datasource:
+          hikari:
+            maximum-pool-size: 10
+      logging:
+        level:
+          com.example.userservice: INFO
+
+metadata:
+  name: auth-service
+  namespace: microservices
+  env: dev
+
+service:
+  type: "ClusterIP"
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+
+networkPolicy:
+  enabled: true
+  ingressNamespace: "ingress-nginx"
+  
+  # Order-service can call user-service
+  allowToServices:
+    - service: "api-service"
+      port: 8080
+    - service: "image-service"
+      port: 8080
+  # User-service can call order-service
+  allowFromServices:
+    - "api-service"
+  
+  
+  # Database access
+  rdsCidr: "10.0.102.0/24"
+  redisCidr: "10.0.202.0/24"

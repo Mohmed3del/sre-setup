@@ -1,0 +1,345 @@
+# Default values for microservice-chart
+# This is a template. Create environment-specific values files for each microservice.
+
+# -- Full name override (if empty, uses release name)
+fullnameOverride: ""
+
+# -- Name override (if empty, uses chart name)
+nameOverride: ""
+
+# -- Global configuration shared across all environments
+global:
+  # -- Environment name (dev, staging, prod)
+  environment: "dev"
+  
+  # -- AWS Region for ECR and Secrets Manager
+  region: "us-east-1"
+  
+  # -- AWS Account ID
+  accountId: "123456789012"
+  
+  # -- Kubernetes namespace
+  namespace: "default"
+  
+  # -- Domain name for ingress (if applicable)
+  domain: "example.com"
+  
+  # -- Team or project name for tagging
+  team: "platform"
+  
+  # -- Cost center for resource tagging
+  costCenter: "platform"
+
+# -- Image configuration
+image:
+  # -- Docker image repository in ECR
+  ecrRepo: "microservice"
+  
+  # -- Image tag/version
+  buildId: "latest"
+  
+  # -- Image pull policy
+  pullPolicy: "IfNotPresent"
+  
+  # -- Image pull secrets (for private registries)
+  pullSecrets: []
+    # - name: regcred
+
+# -- Deployment configuration
+deployment:
+  # -- Number of replicas
+  replicas: 2
+  
+  # -- Container port
+  containerPort: 8080
+  
+  # -- Additional container ports
+  additionalPorts: []
+    # - name: metrics
+    #   containerPort: 9090
+    #   protocol: TCP
+  
+  # -- Deployment strategy
+  strategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 0
+  
+  # -- Pod disruption budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+    maxUnavailable: ""
+  
+  # -- Topology spread constraints
+  topologySpread:
+    enabled: true
+    zoneMaxSkew: 1
+    hostnameMaxSkew: 1
+
+# -- Resource requests and limits
+resources:
+  # -- Resource requests
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+    ephemeral-storage: "1Gi"
+  
+  # -- Resource limits
+  limits:
+    cpu: "200m"
+    memory: "512Mi"
+    ephemeral-storage: "2Gi"
+
+# -- Health checks configuration
+healthChecks:
+  enabled: true
+  
+  # -- Liveness probe
+  livenessProbe:
+    path: "/health"
+    port: 8080
+    scheme: "HTTP"
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  
+  # -- Readiness probe
+  readinessProbe:
+    path: "/ready"
+    port: 8080
+    scheme: "HTTP"
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  
+  # -- Startup probe (for slow-starting apps)
+  startupProbe:
+    enabled: false
+    path: "/startup"
+    port: 8080
+    scheme: "HTTP"
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 30
+
+# -- Security context
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop: ["ALL", "CAP_NET_RAW"]
+  seccompProfile:
+    type: "RuntimeDefault"
+
+# -- External Secrets configuration (AWS Secrets Manager)
+externalSecret:
+  enabled: true
+  refreshInterval: "10m"
+  
+  # -- Fetch entire secrets from AWS
+  dataFrom: []
+    # - extract:
+    #     key: "{{ .Release.Name }}/{{ .Values.global.environment }}/secrets"
+  
+  # -- Fetch specific key-value pairs
+  data: []
+    # - secretKey: DATABASE_URL
+    #   remoteRef:
+    #     key: "database/{{ .Values.global.environment }}"
+    #     property: "url"
+
+# -- SecretStore configuration for External Secrets
+secretStore:
+  enabled: true
+  name: "aws-secret-store"
+  service: "SecretsManager"  # SecretsManager or ParameterStore
+
+# -- Service configuration
+service:
+  enabled: true
+  type: "ClusterIP"
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: "TCP"
+      name: "http"
+  annotations: {}
+    # cloud.google.com/load-balancer-type: "Internal"
+
+# -- Ingress configuration
+ingress:
+  enabled: false
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/healthcheck-path: "/health"
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+  
+  hosts:
+    - host: "{{ .Release.Name }}.{{ .Values.global.domain }}"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+  
+  tls: []
+    # - secretName: tls-secret
+    #   hosts:
+    #     - "{{ .Release.Name }}.{{ .Values.global.domain }}"
+
+# -- Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+  
+  # -- Scaling behavior
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: "Percent"
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: "Percent"
+          value: 100
+          periodSeconds: 60
+
+# -- Service Account configuration
+serviceAccount:
+  enabled: true
+  create: true
+  name: ""
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+  automountServiceAccountToken: true
+
+# -- Environment variables
+env:
+  - name: JAVA_OPTS
+    value: "-Xmx128m -Xms128m"
+  - name: SPRING_PROFILES_ACTIVE
+    value: "{{ .Values.global.environment }}"
+  - name: SERVICE_NAME
+    value: "{{ .Release.Name }}"
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: POD_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+
+# -- ConfigMap configuration
+configMap:
+  enabled: true
+  data: {}
+    # application.yml: |
+    #   server:
+    #     port: {{ .Values.deployment.containerPort }}
+    #   logging:
+    #     level:
+    #       root: INFO
+
+# -- Additional volumes
+extraVolumes: []
+  # - name: config-volume
+  #   configMap:
+  #     name: {{ include "microservice-chart.fullname" . }}-config
+
+# -- Additional volume mounts
+extraVolumeMounts: []
+  # - name: config-volume
+  #   mountPath: /etc/app/config
+  #   readOnly: true
+
+# -- Node selector, affinity, and tolerations
+nodeSelector: {}
+  # node-type: spot
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "microservice-chart.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+          topologyKey: "kubernetes.io/hostname"
+
+tolerations: []
+  # - key: "node-type"
+  #   operator: "Equal"
+  #   value: "spot"
+  #   effect: "NoSchedule"
+
+# -- Pod annotations and labels
+podAnnotations: {}
+  # prometheus.io/scrape: "true"
+  # prometheus.io/port: "8080"
+  # prometheus.io/path: "/actuator/prometheus"
+
+podLabels: {}
+  # version: "{{ .Chart.AppVersion }}"
+
+# -- Additional startup probes for Java applications
+startupScript:
+  enabled: false
+  command: ["sh", "-c", "sleep 30"]
+
+
+# Network Policy Configuration
+networkPolicy:
+  enabled: true
+  
+  # Allow traffic FROM these services
+  allowFromServices: []
+    # - "order-service"     # Allow order-service to call this service
+    # - "payment-service"   # Allow payment-service to call this service
+  
+  # Allow traffic TO these services
+  allowToServices: []
+    # - service: "order-service"     # Allow calls to order-service
+    #   port: 8080                   # Port that order-service listens on
+    #   protocol: TCP
+    # - service: "payment-service"   # Allow calls to payment-service
+    #   port: 8080
+  
+  # Ingress controller namespace (for external traffic)
+  ingressNamespace: "ingress-nginx"
+  
+  # RDS Configuration
+  rdsCidr: ""
+  rdsPorts:
+    - 5432   # PostgreSQL
+    - 3306   # MySQL
+  
+  # Redis Configuration
+  redisCidr: ""
+  redisPorts:
+    - 6379   # Redis
+    - 6380   # Redis TLS
