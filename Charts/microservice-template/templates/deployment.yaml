@@ -1,144 +1,98 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "microservice-chart.fullname" . }}
-  namespace: {{ include "microservice-chart.namespace" . }}
+  name: {{ include "microservice-template.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
-    {{- include "microservice-chart.labels" . | nindent 4 }}
-  {{- with .Values.podAnnotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- include "microservice-template.labels" . | nindent 4 }}
+    app: {{ .Values.appName }}
+    version: {{ .Values.image.tag }}
 spec:
-  replicas: {{ .Values.deployment.replicas }}
-  strategy:
-    type: {{ .Values.deployment.strategy.type }}
-    {{- with .Values.deployment.strategy.rollingUpdate }}
-    rollingUpdate:
-      maxSurge: {{ .maxSurge }}
-      maxUnavailable: {{ .maxUnavailable }}
-    {{- end }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "microservice-chart.selectorLabels" . | nindent 6 }}
+      {{- include "microservice-template.selectorLabels" . | nindent 6 }}
+      app: {{ .Values.appName }}
   template:
     metadata:
       labels:
-        {{- include "microservice-chart.selectorLabels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{ toYaml . | nindent 8 }}
-        {{- end }}
+        {{- include "microservice-template.selectorLabels" . | nindent 8 }}
+        app: {{ .Values.appName }}
+        version: {{ .Values.image.tag }}
       annotations:
-        {{- with .Values.podAnnotations }}
-        {{ toYaml . | nindent 8 }}
-        {{- end }}
-        {{- if .Values.configMap.enabled }}
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        {{- end }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.port }}"
+        prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: {{ include "microservice-chart.serviceAccountName" . }}
-      {{- with .Values.image.pullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- if .Values.startupScript.enabled }}
-      initContainers:
-        - name: startup-delay
-          image: busybox:1.35
-          {{- include "microservice-chart.startupCommand" . | nindent 10 }}
-      {{- end }}
+      serviceAccountName: {{ include "microservice-template.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
       containers:
-        - name: {{ .Chart.Name }}
-          image: {{ include "microservice-chart.image" . }}
+        - name: {{ .Values.appName }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.deployment.containerPort }}
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
-            {{- range .Values.deployment.additionalPorts }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
-          {{- if .Values.healthChecks.enabled }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.healthChecks.livenessProbe.path }}
-              port: {{ .Values.healthChecks.livenessProbe.port }}
-              scheme: {{ .Values.healthChecks.livenessProbe.scheme }}
-            initialDelaySeconds: {{ .Values.healthChecks.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.healthChecks.livenessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.healthChecks.livenessProbe.timeoutSeconds }}
-            successThreshold: {{ .Values.healthChecks.livenessProbe.successThreshold }}
-            failureThreshold: {{ .Values.healthChecks.livenessProbe.failureThreshold }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.healthChecks.readinessProbe.path }}
-              port: {{ .Values.healthChecks.readinessProbe.port }}
-              scheme: {{ .Values.healthChecks.readinessProbe.scheme }}
-            initialDelaySeconds: {{ .Values.healthChecks.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.healthChecks.readinessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.healthChecks.readinessProbe.timeoutSeconds }}
-            successThreshold: {{ .Values.healthChecks.readinessProbe.successThreshold }}
-            failureThreshold: {{ .Values.healthChecks.readinessProbe.failureThreshold }}
-          {{- if .Values.healthChecks.startupProbe.enabled }}
-          startupProbe:
-            httpGet:
-              path: {{ .Values.healthChecks.startupProbe.path }}
-              port: {{ .Values.healthChecks.startupProbe.port }}
-              scheme: {{ .Values.healthChecks.startupProbe.scheme }}
-            initialDelaySeconds: {{ .Values.healthChecks.startupProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.healthChecks.startupProbe.periodSeconds }}
-            failureThreshold: {{ .Values.healthChecks.startupProbe.failureThreshold }}
-          {{- end }}
-          {{- end }}
           env:
-            {{- include "microservice-chart.envVars" . | nindent 12 }}
-          volumeMounts:
-            {{- if .Values.externalSecret.enabled }}
-            - name: external-secret-volume
-              readOnly: true
-              mountPath: "/var/external-secret"
+            - name: ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: SERVICE_NAME
+              value: {{ .Values.appName | quote }}
+            - name: PORT
+              value: {{ .Values.service.port | quote }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
-            {{- include "microservice-chart.extraVolumeMounts" . | nindent 12 }}
+            {{- if .Values.externalSecret.enabled }}
+            - name: SECRETS_PATH
+              value: "/var/secrets"
+            {{- end }}
+          {{- if .Values.externalSecret.enabled }}
+          volumeMounts:
+            - name: secrets-volume
+              mountPath: "/var/secrets"
+              readOnly: true
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.securityContext.enabled }}
-          securityContext:
-            {{- $securityContext := omit .Values.securityContext "enabled" }}
-            {{- toYaml $securityContext | nindent 12 }}
-          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path }}
+              port: {{ .Values.service.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: {{ .Values.service.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+      {{- if .Values.externalSecret.enabled }}
       volumes:
-        {{- if .Values.externalSecret.enabled }}
-        - name: external-secret-volume
+        - name: secrets-volume
           secret:
-            secretName: {{ include "microservice-chart.secretName" . }}
-        {{- end }}
-        {{- include "microservice-chart.extraVolumes" . | nindent 6 }}
-      {{- if .Values.deployment.topologySpread.enabled }}
-      topologySpreadConstraints:
-        - maxSkew: {{ .Values.deployment.topologySpread.zoneMaxSkew }}
-          topologyKey: "topology.kubernetes.io/zone"
-          whenUnsatisfiable: ScheduleAnyway
-          labelSelector:
-            matchLabels:
-              {{- include "microservice-chart.selectorLabels" . | nindent 14 }}
-        - maxSkew: {{ .Values.deployment.topologySpread.hostnameMaxSkew }}
-          topologyKey: "kubernetes.io/hostname"
-          whenUnsatisfiable: ScheduleAnyway
-          labelSelector:
-            matchLabels:
-              {{- include "microservice-chart.selectorLabels" . | nindent 14 }}
+            secretName: {{ include "microservice-template.fullname" . }}-secrets
       {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{ .Values.appName }}
+                topologyKey: kubernetes.io/hostname

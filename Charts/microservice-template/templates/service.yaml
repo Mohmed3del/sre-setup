@@ -1,24 +1,18 @@
-{{- if .Values.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "microservice-chart.fullname" . }}
-  namespace: {{ include "microservice-chart.namespace" . }}
+  name: {{ include "microservice-template.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
-    {{- include "microservice-chart.labels" . | nindent 4 }}
-  {{- with .Values.service.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- include "microservice-template.labels" . | nindent 4 }}
+    app: {{ .Values.appName }}
 spec:
   type: {{ .Values.service.type }}
   ports:
-    {{- range .Values.service.ports }}
-    - port: {{ .port }}
-      targetPort: {{ .targetPort }}
-      protocol: {{ .protocol }}
-      name: {{ .name }}
-    {{- end }}
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      protocol: TCP
+      name: http
   selector:
-    {{- include "microservice-chart.selectorLabels" . | nindent 4 }}
-{{- end }}
+    {{- include "microservice-template.selectorLabels" . | nindent 4 }}
+    app: {{ .Values.appName }}

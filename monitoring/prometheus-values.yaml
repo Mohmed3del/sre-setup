@@ -1,0 +1,69 @@
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    additionalScrapeConfigs:
+      - job_name: 'api-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['api']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: api-service
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "8080"
+      - job_name: 'auth-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['auth']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: auth-service
+      - job_name: 'image-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['image']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: image-service
+
+alertmanager:
+  config:
+    global:
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'alerts@example.com'
+      smtp_auth_username: 'alert-email@gmail.com'
+      smtp_auth_password: 'password'
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'slack-notifications'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'pagerduty'
+        - match:
+            namespace: api
+          receiver: 'api-team'
+    receivers:
+      - name: 'slack-notifications'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+            channel: '#alerts'
+            send_resolved: true
+      - name: 'pagerduty'
+        pagerduty_configs:
+          - service_key: 'pagerduty-key'
+      - name: 'api-team'
+        email_configs:
+          - to: 'api-team@example.com'

@@ -1,101 +1,100 @@
-# User Service - Production Environment
-
-fullnameOverride: "api-service"
-
-global:
-  environment: "prod"
-  region: "us-east-1"
-  accountId: "123456789012"
-  team: "backend"
-  costCenter: "platform"
+# API Service - Node.js
+appName: api-service
+namespace: api
+environment: production
 
 image:
-  ecrRepo: "api-service"
-  buildId: "v2.1.0"
-  pullPolicy: "IfNotPresent"
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/api-service
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
 
-deployment:
-  replicas: 3
-  containerPort: 8080
-  strategy:
-    rollingUpdate:
-      maxSurge: "25%"
-      maxUnavailable: 1
+replicaCount: 3
+
+service:
+  port: 8080
+  type: ClusterIP
 
 resources:
   requests:
-    cpu: "500m"
-    memory: "1Gi"
+    cpu: "100m"
+    memory: "256Mi"
   limits:
-    cpu: "1"
-    memory: "2Gi"
+    cpu: "500m"
+    memory: "512Mi"
+
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  path: /ready
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
 
 autoscaling:
   enabled: true
   minReplicas: 3
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+  targetCPU: 70
+  targetMemory: 80
+  targetRPS: 100
+
+pdb:
+  minAvailable: 2
+
+networkPolicy:
+  allowedIngress:
+    - namespace: monitoring
+  rdsCidr: "10.0.1.0/24"
+  rdsPorts: [5432]
+  redisCidr: "10.0.2.0/24"
+  redisPorts: [6379]
 
 externalSecret:
-  dataFrom:
-    - extract:
-        key: "api-service/prod/secrets"
+  enabled: true
+  refreshInterval: 5m
+  secrets:
+    - name: DATABASE_URL
+      secretPath: ${var.project_name}/${var.environment}/api-service/database
+      property: url
+    - name: REDIS_URL
+      secretPath: ${var.project_name}/${var.environment}/api-service/redis
+      property: url
+    - name: JWT_SECRET
+      secretPath: ${var.project_name}/${var.environment}/api-service/secrets
+      property: jwt.secret_key
+    - name: AUTH_SERVICE_URL
+      secretPath: ${var.project_name}/${var.environment}/api-service/secrets
+      property: services.auth_url
+    - name: IMAGE_SERVICE_URL
+      secretPath: ${var.project_name}/${var.environment}/api-service/secrets
+      property: services.image_url
+    - name: API_KEY
+      secretPath: ${var.project_name}/${var.environment}/api/keys
+      property: api_service_key
 
-service:
-  type: "ClusterIP"
-  ports:
-  - port: 8080
-    targetPort: 8080
-    protocol: TCP
-    name: http
+aws:
+  region: us-east-1
+
+serviceAccount:
+  roleArn: arn:aws:iam::123456789012:role/api-service-role
 
 ingress:
   enabled: true
-  hosts:
-    - host: "api.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
+  namespace: ingress-nginx
+  scheme: internet-facing
+  host: api.example.com
+  path: /
+  healthCheckPath: /health
+  certificateArn: arn:aws:acm:us-east-1:123456789012:certificate/xxxxx-xxxx-xxxx
 
 env:
-  - name: SPRING_PROFILES_ACTIVE
-    value: "prod"
-  - name: SERVICE_NAME
-    value: "api-service"
-
-configMap:
-  data:
-    application-prod.yml: |
-      server:
-        port: 8080
-      spring:
-        datasource:
-          hikari:
-            maximum-pool-size: 10
-      logging:
-        level:
-          com.example.userservice: INFO
-
-
-metadata:
-  name: api-service
-  namespace: microservices
-  env: dev
-
-
-networkPolicy:
-  enabled: true
-  ingressNamespace: "ingress-nginx"
-  
-  # User-service can call order-service
-  allowToServices:
-    - service: "auth-service"
-      port: 8080
-  
-  # Order-service can call user-service
-  allowFromServices:
-    - "auth-service"
-  
-  # Database access
-  rdsCidr: "10.0.101.0/24"
-  redisCidr: "10.0.201.0/24"
+  NODE_ENV: production
+  LOG_LEVEL: info
+  AUTH_SERVICE_URL: http://auth-service.auth:8080
+  IMAGE_SERVICE_URL: http://image-service.image:8080

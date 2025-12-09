@@ -2,15 +2,16 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "microservice-chart.fullname" . }}
-  namespace: {{ include "microservice-chart.namespace" . }}
+  name: {{ include "microservice-template.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
-    {{- include "microservice-chart.labels" . | nindent 4 }}
+    {{- include "microservice-template.labels" . | nindent 4 }}
+    app: {{ .Values.appName }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "microservice-chart.fullname" . }}
+    name: {{ include "microservice-template.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
@@ -19,15 +20,18 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.autoscaling.targetCPU }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-  {{- with .Values.autoscaling.behavior }}
-  behavior:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+          averageUtilization: {{ .Values.autoscaling.targetMemory }}
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: {{ .Values.autoscaling.targetRPS }}
 {{- end }}

@@ -1,72 +1,85 @@
-# User Service - Production Environment
-
-fullnameOverride: "image-service"
-
-global:
-  environment: "prod"
-  region: "us-east-1"
-  accountId: "123456789012"
-  team: "backend"
-  costCenter: "platform"
+# Image Service - Python
+appName: image-service
+namespace: image
+environment: production
 
 image:
-  ecrRepo: "image-service"
-  buildId: "v2.1.0"
-  pullPolicy: "IfNotPresent"
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/image-service
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
 
-deployment:
-  replicas: 3
-  containerPort: 8080
-  strategy:
-    rollingUpdate:
-      maxSurge: "25%"
-      maxUnavailable: 1
+replicaCount: 3
+
+service:
+  port: 8080
+  type: ClusterIP
 
 resources:
   requests:
-    cpu: "500m"
-    memory: "1Gi"
+    cpu: "300m"
+    memory: "512Mi"
   limits:
-    cpu: "1"
-    memory: "2Gi"
+    cpu: "2000m"
+    memory: "1Gi"
+
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 60
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  path: /ready
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
 
 autoscaling:
   enabled: true
   minReplicas: 3
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+  maxReplicas: 15
+  targetCPU: 60
+  targetMemory: 75
+  targetRPS: 50
+
+pdb:
+  minAvailable: 2
+
+networkPolicy:
+  allowedIngress:
+    - namespace: api
+  s3Endpoint: "10.0.3.0/24"
 
 externalSecret:
-  dataFrom:
-    - extract:
-        key: "image-service/prod/secrets"
+  enabled: true
+  refreshInterval: 5m
+  secrets:
+    - name: AWS_ACCESS_KEY_ID
+      secretPath: prod/image-service/aws
+      property: access_key
+    - name: AWS_SECRET_ACCESS_KEY
+      secretPath: prod/image-service/aws
+      property: secret_key
+    - name: S3_BUCKET
+      secretPath: prod/image-service/s3
+    - name: IMAGE_QUALITY
+      secretPath: prod/image-service/config
+      property: quality
 
-service:
-  type: "ClusterIP"
+aws:
+  region: us-east-1
+
+serviceAccount:
+  roleArn: arn:aws:iam::123456789012:role/image-service-role
 
 ingress:
-  enabled: true
-  hosts:
-    - host: "image.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
+  enabled: false
 
 env:
-  - name: SPRING_PROFILES_ACTIVE
-    value: "prod"
-  - name: SERVICE_NAME
-    value: "image-service"
-
-configMap:
-  data:
-    application-prod.yml: |
-      server:
-        port: 8080
-      spring:
-        datasource:
-          hikari:
-            maximum-pool-size: 10
-      logging:
-        level:
-          com.example.userservice: INFO
+  PYTHON_ENV: production
+  LOG_LEVEL: info
+  MAX_IMAGE_SIZE: "10485760"
+  ALLOWED_EXTENSIONS: "jpg,jpeg,png,gif,webp"
+  S3_REGION: us-east-1
