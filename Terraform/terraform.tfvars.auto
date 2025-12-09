@@ -1,0 +1,115 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "sre-project"
+environment  = "prod"
+
+tags = {
+  ManagedBy   = "Terraform"
+  Department  = "Engineering"
+  CostCenter  = "12345"
+  Owner       = "Platform Team"
+  Application = "Microservices Platform"
+}
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+database_subnet_cidrs = ["10.0.7.0/24", "10.0.8.0/24", "10.0.9.0/24"]
+
+# EKS Configuration
+eks_cluster_version    = "1.28"
+eks_node_instance_type = "t3.medium"
+eks_node_min_size      = 2
+eks_node_max_size      = 5
+eks_node_desired_size  = 2
+eks_node_disk_size     = 50
+eks_node_disk_type     = "gp3"
+
+# RDS Configuration
+database_name                   = "sredb"
+database_username               = "sreadmin"
+database_instance_class         = "db.t3.micro"
+database_allocated_storage      = 20
+database_max_allocated_storage  = 100
+database_backup_retention_period = 7
+database_multi_az               = false
+database_deletion_protection    = true
+database_engine_version         = "15.3"
+
+# Redis Configuration
+redis_node_type               = "cache.t3.micro"
+redis_num_cache_nodes         = 1
+redis_engine_version          = "7.0"
+redis_snapshot_retention_limit = 7
+redis_parameter_group_name    = "default.redis7"
+
+# S3 Configuration
+s3_bucket_name_prefix    = "sre-project-images"
+s3_versioning_enabled    = true
+s3_lifecycle_days        = 30
+
+
+# Kubernetes Addons Configuration
+cert_manager_email   = "admin@example.com"
+# route53_hosted_zone_id = "Z1234567890ABC"  # Required for production
+# ssl_certificate_arn    = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+grafana_admin_password = "admin123"
+# slack_webhook_url = "https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX"
+
+# Enable/Disable Features
+enable_external_secrets = true
+enable_cert_manager     = true
+enable_nginx_ingress    = true
+enable_prometheus_stack = true
+enable_metrics_server   = true
+enable_aws_alb_controller = false
+
+# Monitoring Configuration
+prometheus_storage_size     = "50Gi"
+prometheus_retention_days   = "15d"
+grafana_storage_size        = "10Gi"
+alertmanager_storage_size   = "10Gi"
+
+# Network Monitoring
+enable_vpc_flow_logs          = true
+vpc_flow_logs_retention_days  = 30
+
+# Security Configuration
+enable_ssh_access          = false
+allowed_ssh_cidr_blocks    = []
+
+# Backup Configuration
+enable_rds_automated_backups = true
+rds_backup_window          = "03:00-06:00"
+rds_maintenance_window     = "Mon:00:00-Mon:03:00"
+
+# Domain Configuration
+api_domain_name    = "api.staging.example.com"
+auth_domain_name   = "auth.staging.example.com"
+image_domain_name  = "images.staging.example.com"
+
+# Cost Optimization
+use_spot_instances      = false
+spot_instance_percentage = 50
+
+# Storage Configuration
+storage_class_name = "gp2"
+# kms_key_arn = "arn:aws:kms:us-east-1:123456789012:key/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+
+
+# Timezone Configuration
+timezone = "UTC"
+
+# Resource Naming
+resource_name_prefix = "sre"
+
+# Terraform State Configuration
+# terraform_state_bucket = "sre-project-tfstate-staging"
+# terraform_state_lock_table = "sre-project-tfstate-lock-staging"
