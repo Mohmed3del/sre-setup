@@ -2,22 +2,23 @@
 
 ## 📋 Table of Contents
 
-- [Project Overview](#project-overview)
-- [System Architecture](#system-architecture)
-- [AWS Infrastructure Architecture](#aws-infrastructure-architecture)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Infrastructure Setup](#infrastructure-setup)
-- [Application Deployment](#application-deployment)
-- [CI/CD Pipeline](#cicd-pipeline)
-- [Monitoring & Observability](#monitoring--observability)
-- [Failure Testing](#failure-testing)
-- [Security](#security)
-- [Troubleshooting](#troubleshooting)
-- [Service Details](#service-details)
-- [Contributing](#contributing)
-- [Project Status](#project-status)
-- [License](#license)
+- [📘 Project Overview](#project-overview)
+- [🏗️ System Architecture](#system-architecture)
+- [☁️ AWS Infrastructure Architecture](#aws-infrastructure-architecture)
+- [🧰 Prerequisites](#prerequisites)
+- [⚡ Quick Start](#quick-start)
+- [🏗️ Infrastructure Setup](#infrastructure-setup)
+- [🚢 Application Deployment](#application-deployment)
+- [🔄 CI/CD Pipeline](#cicd-pipeline)
+- [📊 Monitoring & Observability](#monitoring--observability)
+- [🧪 Failure Testing](#failure-testing)
+- [🔒 Security](#security)
+- [🧠 Troubleshooting](#troubleshooting)
+- [🛠️ Service Details](#service-details)
+- [🤝 Contributing](#contributing)
+- [📌 Project Status](#project-status)
+- [📄 License](#license)
+
 
 ---
 
