@@ -153,8 +153,7 @@ jobs:
             # Deploy with Helm
             helm upgrade --install $SERVICE ./Charts/microservice-template \
               --namespace $NAMESPACE \
-              --set image.repository=$ECR_REGISTRY/$SERVICE \
-              --set image.tag=$TAG \
+              -f ./Charts/values/$SERVICE/values.yaml \
               --wait \
               --timeout 5m \
               --atomic
