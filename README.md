@@ -71,7 +71,7 @@ This project demonstrates a **complete SRE-grade production microservices enviro
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## ☁️ AWS Infrastructure Architecture
+## AWS Infrastructure Architecture ☁️
 ![Diagram of Project](infra.drawio.svg)
 
 ---
