@@ -146,58 +146,15 @@ jobs:
             # Check if values file exists
             VALUES_FILE="./Charts/values/$SERVICE/values.yaml"
             if [ ! -f "$VALUES_FILE" ]; then
-              echo "⚠️ Values file not found: $VALUES_FILE"
-              echo "Using default values..."
-              VALUES_FILE=""
-            fi
-            
-            # Create temporary values file with image tag
-            TEMP_VALUES="/tmp/$SERVICE-values.yaml"
-            if [ -f "$VALUES_FILE" ]; then
-              # Copy existing values
-              cp "$VALUES_FILE" "$TEMP_VALUES"
-              # Update image tag using yq
-              yq eval ".image.repository = \"$ECR_REGISTRY/$SERVICE\"" -i "$TEMP_VALUES"
-              yq eval ".image.tag = \"$TAG\"" -i "$TEMP_VALUES"
-              yq eval ".namespace = \"$NAMESPACE\"" -i "$TEMP_VALUES"
-            else
-              # Create minimal values file
-              cat > "$TEMP_VALUES" << 'EOF'
-appName: $SERVICE
-namespace: $NAMESPACE
-image:
-  repository: $ECR_REGISTRY/$SERVICE
-  tag: $TAG
-  pullPolicy: Always
-replicaCount: 2
-service:
-  port: 8080
-  type: ClusterIP
-resources:
-  requests:
-    cpu: "100m"
-    memory: "256Mi"
-  limits:
-    cpu: "500m"
-    memory: "512Mi"
-livenessProbe:
-  path: /health
-  initialDelaySeconds: 30
-readinessProbe:
-  path: /ready
-  initialDelaySeconds: 5
-EOF
-              # Replace variables in the template
-              sed -i "s/\$SERVICE/$SERVICE/g" "$TEMP_VALUES"
-              sed -i "s/\$NAMESPACE/$NAMESPACE/g" "$TEMP_VALUES"
-              sed -i "s/\$ECR_REGISTRY/$ECR_REGISTRY/g" "$TEMP_VALUES"
-              sed -i "s/\$TAG/$TAG/g" "$TEMP_VALUES"
+              echo "⚠️ WARNING: Values file not found at: $VALUES_FILE"
+              echo "The deployment may fail without proper configuration."
             fi
             
             # Deploy with Helm
             helm upgrade --install $SERVICE ./Charts/microservice-template \
               --namespace $NAMESPACE \
-              -f "$TEMP_VALUES" \
+              --set image.repository=$ECR_REGISTRY/$SERVICE \
+              --set image.tag=$TAG \
               --wait \
               --timeout 5m \
               --atomic
