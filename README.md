@@ -21,7 +21,7 @@
 
 ---
 
-## Project Overview
+## 📘 Project Overview
 
 This project demonstrates a **complete SRE-grade production microservices environment** deployed on **AWS EKS**, including:
 
@@ -35,7 +35,7 @@ This project demonstrates a **complete SRE-grade production microservices enviro
 
 ---
 
-## System Architecture
+## 🏗️ System Architecture
 
 
 ```yaml
@@ -70,7 +70,7 @@ This project demonstrates a **complete SRE-grade production microservices enviro
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## AWS Infrastructure Architecture
+## ☁️ AWS Infrastructure Architecture
 ![Diagram of Project](infra.drawio.svg)
 
 ---
