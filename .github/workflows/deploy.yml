@@ -1,0 +1,239 @@
+name: Build, Push, and Deploy
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        type: choice
+        options:
+          - api-service
+          - auth-service
+          - image-service
+      tag:
+        description: 'Docker tag (default: commit hash)'
+        required: false
+        default: ''
+      namespace:
+        description: 'Kubernetes namespace'
+        required: true
+        default: 'default'
+        type: choice
+        options:
+          - default
+          - staging
+          - production
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+      
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+      
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+      
+      - name: Configure kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ secrets.AWS_REGION || 'us-east-1' }} \
+            --name ${{ secrets.EKS_CLUSTER_NAME }}
+      
+      - name: Determine service to deploy
+        id: determine-service
+        run: |
+          # If manual trigger, use selected service
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            SERVICE="${{ github.event.inputs.service }}"
+          else
+            # Auto detect changed service
+            CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
+            if echo "$CHANGED_FILES" | grep -q "src/api-service"; then
+              SERVICE="api-service"
+            elif echo "$CHANGED_FILES" | grep -q "src/auth-service"; then
+              SERVICE="auth-service"
+            elif echo "$CHANGED_FILES" | grep -q "src/image-service"; then
+              SERVICE="image-service"
+            else
+              SERVICE="all"
+            fi
+          fi
+          
+          echo "service=$SERVICE" >> $GITHUB_OUTPUT
+          echo "Selected service: $SERVICE"
+      
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG=$(git rev-parse --short HEAD)
+          fi
+          
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Using tag: $TAG"
+      
+      - name: Build and push Docker images
+        id: build
+        run: |
+          TAG=${{ steps.tag.outputs.tag }}
+          ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION || 'us-east-1' }}.amazonaws.com"
+          
+          SERVICES=("api-service" "auth-service" "image-service")
+          
+          for SERVICE in "${SERVICES[@]}"; do
+            # Check if we should build this service
+            if [[ "${{ steps.determine-service.outputs.service }}" == "all" ]] || [[ "${{ steps.determine-service.outputs.service }}" == "$SERVICE" ]]; then
+              echo "🚀 Building $SERVICE..."
+              
+              # Determine Dockerfile path
+              if [[ "$SERVICE" == "api-service" ]]; then
+                DOCKERFILE="src/api-service/Dockerfile"
+              elif [[ "$SERVICE" == "auth-service" ]]; then
+                DOCKERFILE="src/auth-service/Dockerfile"
+              else
+                DOCKERFILE="src/image-service/Dockerfile"
+              fi
+              
+              # Build and push
+              docker build -t $ECR_REGISTRY/$SERVICE:$TAG \
+                         -t $ECR_REGISTRY/$SERVICE:latest \
+                         -f ./src/$SERVICE/Dockerfile ./src/$SERVICE
+              
+              docker push $ECR_REGISTRY/$SERVICE:$TAG
+              docker push $ECR_REGISTRY/$SERVICE:latest
+              
+              echo "✅ $SERVICE built and pushed"
+            else
+              echo "⏭️  Skipping $SERVICE (not selected)"
+            fi
+          done
+      
+      - name: Deploy to Kubernetes
+        id: deploy
+        run: |
+          NAMESPACE="${{ github.event.inputs.namespace || 'default' }}"
+          TAG=${{ steps.tag.outputs.tag }}
+          ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION || 'us-east-1' }}.amazonaws.com"
+          
+          # Create namespace if it doesn't exist
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Deploy selected services
+          if [[ "${{ steps.determine-service.outputs.service }}" == "all" ]]; then
+            SERVICES=("api-service" "auth-service" "image-service")
+          else
+            SERVICES=("${{ steps.determine-service.outputs.service }}")
+          fi
+          
+          for SERVICE in "${SERVICES[@]}"; do
+            echo "📦 Deploying $SERVICE to namespace: $NAMESPACE"
+            
+            # Check if values file exists
+            VALUES_FILE="./Charts/values/$SERVICE/values.yaml"
+            if [ ! -f "$VALUES_FILE" ]; then
+              echo "⚠️ Values file not found: $VALUES_FILE"
+              echo "Using default values..."
+              VALUES_FILE=""
+            fi
+            
+            # Create temporary values file with image tag
+            TEMP_VALUES="/tmp/$SERVICE-values.yaml"
+            if [ -f "$VALUES_FILE" ]; then
+              # Copy existing values
+              cp "$VALUES_FILE" "$TEMP_VALUES"
+              # Update image tag
+              yq eval ".image.repository = \"$ECR_REGISTRY/$SERVICE\"" -i "$TEMP_VALUES"
+              yq eval ".image.tag = \"$TAG\"" -i "$TEMP_VALUES"
+              yq eval ".namespace = \"$NAMESPACE\"" -i "$TEMP_VALUES"
+            else
+              # Create minimal values file
+              cat > "$TEMP_VALUES" <<EOF
+appName: $SERVICE
+namespace: $NAMESPACE
+image:
+  repository: $ECR_REGISTRY/$SERVICE
+  tag: $TAG
+  pullPolicy: Always
+replicaCount: 2
+service:
+  port: 8080
+  type: ClusterIP
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 30
+readinessProbe:
+  path: /ready
+  initialDelaySeconds: 5
+EOF
+            fi
+            
+            # Deploy with Helm
+            helm upgrade --install $SERVICE ./Charts/microservice-template \
+              --namespace $NAMESPACE \
+              -f "$TEMP_VALUES" \
+              --wait \
+              --timeout 5m \
+              --atomic
+            
+            echo "✅ $SERVICE deployed successfully"
+            
+            # Wait for rollout
+            kubectl rollout status deployment/$SERVICE \
+              --namespace $NAMESPACE \
+              --timeout=300s
+          done
+      
+      - name: Verify deployment
+        run: |
+          NAMESPACE="${{ github.event.inputs.namespace || 'default' }}"
+          
+          echo "📊 Deployment Status in $NAMESPACE:"
+          echo "========================================"
+          
+          if [[ "${{ steps.determine-service.outputs.service }}" == "all" ]]; then
+            SERVICES=("api-service" "auth-service" "image-service")
+          else
+            SERVICES=("${{ steps.determine-service.outputs.service }}")
+          fi
+          
+          for SERVICE in "${SERVICES[@]}"; do
+            echo ""
+            echo "🔍 $SERVICE:"
+            kubectl get deployment/$SERVICE -n $NAMESPACE -o wide
+            echo "Pods:"
+            kubectl get pods -n $NAMESPACE -l app=$SERVICE
+          done
+          
+          echo ""
+          echo "🎉 All deployments completed successfully!"
