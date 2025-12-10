@@ -1,5 +1,11 @@
 # SRE Microservices Platform Project
 
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=Mohmed3del.sre-setup)
+![GitHub stars](https://img.shields.io/github/stars/Mohmed3del/sre-setup?style=social)
+![GitHub forks](https://img.shields.io/github/forks/Mohmed3del/sre-setup?style=social)
+
 ## 📋 Table of Contents
 
 - [📘 Project Overview](#project-overview)
@@ -323,7 +329,3 @@ Coding guidelines:
 
 ## 📄 License
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![Visitors](https://visitor-badge.laobi.icu/badge?page_id=Mohmed3del.sre-setup)
-![GitHub stars](https://img.shields.io/github/stars/Mohmed3del/sre-setup?style=social)
-![GitHub forks](https://img.shields.io/github/forks/Mohmed3del/sre-setup?style=social)
