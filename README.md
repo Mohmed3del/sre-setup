@@ -2,7 +2,7 @@
 
 ## 📋 Table of Contents
 
-- [Project Overview](#📘project-overview)
+- [Project Overview](#project-overview)
 - [System Architecture](#system-architecture)
 - [AWS Infrastructure Architecture](#aws-infrastructure-architecture)
 - [Prerequisites](#prerequisites)
