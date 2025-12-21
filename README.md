@@ -10,7 +10,7 @@
 
 - [📘 Project Overview](#-project-overview)
 - [🏗️ System Architecture](#%EF%B8%8F-system-architecture)
- - [☁️ AWS Infrastructure Architecture](#%EF%B8%8F-aws-infrastructure-architecture)
+- [☁️ AWS Infrastructure Architecture](#%EF%B8%8F-aws-infrastructure-architecture)
 - [🧰 Prerequisites](#-prerequisites)
 - [⚡ Quick Start](#-quick-start)
 - [🏗️ Infrastructure Setup](#%EF%B8%8F-infrastructure-setup)
@@ -20,7 +20,7 @@
 - [🧪 Failure Testing](#-failure-testing)
 - [🔒 Security](#-security)
 - [🧠 Troubleshooting](#-troubleshooting)
-- [🛠️ Service Details](#-service-details)
+- [🛠️ Service Details](#%EF%B8%8F-service-details)
 - [🤝 Contributing](#-contributing)
 - [📌 Project Status](#-project-status)
 - [📄 License](#-license)
