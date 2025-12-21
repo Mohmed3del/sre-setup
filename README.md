@@ -20,11 +20,10 @@
 - [🧪 Failure Testing](#-failure-testing)
 - [🔒 Security](#-security)
 - [🧠 Troubleshooting](#-troubleshooting)
-- [🛠️ Service Details](#_service-details)
+- [🛠️ Service Details](#-service-details)
 - [🤝 Contributing](#-contributing)
 - [📌 Project Status](#-project-status)
 - [📄 License](#-license)
-- [⚔️ Developed By](#️-developed-by)
 - [:book: Author](#book-author)
 
 
@@ -333,11 +332,6 @@ Coding guidelines:
 
 This project is licensed under the [Apache-2.0 License](LICENSE).
 
-## ⚔️ Developed By
-
-<a href="https://www.linkedin.com/in/mohmed3del/" target="_blank"><img alt="LinkedIn" align="right" title="LinkedIn" height="24" width="24" src="docs/assets/imgs/linkedin.png"></a>
-
-Mohmed Adel
 
 ## :book: Author
 
