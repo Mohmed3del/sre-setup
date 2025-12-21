@@ -8,27 +8,27 @@
 
 ## 📋 Table of Contents
 
-- [📘 Project Overview](#project-overview)
-- [🏗️ System Architecture](#system-architecture)
-- [☁️ AWS Infrastructure Architecture](#aws-infrastructure-architecture)
-- [🧰 Prerequisites](#prerequisites)
-- [⚡ Quick Start](#quick-start)
-- [🏗️ Infrastructure Setup](#infrastructure-setup)
-- [🚢 Application Deployment](#application-deployment)
-- [🔄 CI/CD Pipeline](#cicd-pipeline)
-- [📊 Monitoring & Observability](#monitoring--observability)
-- [🧪 Failure Testing](#failure-testing)
-- [🔒 Security](#security)
-- [🧠 Troubleshooting](#troubleshooting)
-- [🛠️ Service Details](#service-details)
-- [🤝 Contributing](#contributing)
-- [📌 Project Status](#project-status)
-- [📄 License](#license)
+- [📘 Project Overview](#-project-overview)
+- [🏗️ System Architecture](#-system-architecture)
+- [☁️ AWS Infrastructure Architecture](#-aws-infrastructure-architecture)
+- [🧰 Prerequisites](#-prerequisites)
+- [⚡ Quick Start](#-quick-start)
+- [🏗️ Infrastructure Setup](#-infrastructure-setup)
+- [🚢 Application Deployment](#-application-deployment)
+- [🔄 CI/CD Pipeline](#-cicd-pipeline)
+- [📊 Monitoring & Observability](#-monitoring--observability)
+- [🧪 Failure Testing](#-failure-testing)
+- [🔒 Security](#-security)
+- [🧠 Troubleshooting](#-troubleshooting)
+- [🛠️ Service Details](#-service-details)
+- [🤝 Contributing](#-contributing)
+- [📌 Project Status](#-project-status)
+- [📄 License](#-license)
 
 
 ---
 
-## Project Overview
+## 📘 Project Overview
 
 This project demonstrates a **complete SRE-grade production microservices environment** deployed on **AWS EKS**, including:
 
@@ -42,7 +42,7 @@ This project demonstrates a **complete SRE-grade production microservices enviro
 
 ---
 
-## System Architecture
+## 🏗️ System Architecture
 
 
 ```yaml
@@ -77,12 +77,12 @@ This project demonstrates a **complete SRE-grade production microservices enviro
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## AWS Infrastructure Architecture
+## ☁️ AWS Infrastructure Architecture
 ![Diagram of Project](infra.drawio.svg)
 
 ---
 
-## Prerequisites
+## 🧰 Prerequisites
 
 ### Required Tools
 
@@ -102,7 +102,7 @@ This project demonstrates a **complete SRE-grade production microservices enviro
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
 ### 1. Clone the repository
 
@@ -141,7 +141,7 @@ kubectl apply -k ./Charts/values/api-service
 
 ---
 
-## Infrastructure Setup
+## 🏗️ Infrastructure Setup
 
 Terraform provisions:
 
@@ -159,7 +159,7 @@ Terraform provisions:
 
 ---
 
-## Application Deployment
+## 🚢 Application Deployment
 
 ### Microservices
 
@@ -178,7 +178,7 @@ helm upgrade --install api-service ./Charts/microservice-template \
 
 ---
 
-## CI/CD Pipeline
+## 🔄 CI/CD Pipeline
 
 CI/CD workflow:
 `.github/workflows/deploy.yml`
@@ -195,7 +195,7 @@ GitHub → Actions → **Build & Deploy**
 
 ---
 
-## Monitoring & Observability
+## 📊 Monitoring & Observability
 
 Stack includes:
 
@@ -218,7 +218,7 @@ kubectl port-forward svc/prometheus-stack-grafana 3000:80 -n monitoring
 
 ---
 
-## Failure Testing
+## 🧪 Failure Testing
 
 Run:
 
@@ -237,7 +237,7 @@ Test Scenarios:
 
 ---
 
-## Security
+## 🔒 Security
 
 Includes:
 
@@ -250,7 +250,7 @@ Includes:
 
 ---
 
-## Troubleshooting
+## 🧠 Troubleshooting
 
 Common commands:
 
@@ -268,7 +268,7 @@ helm status api-service -n production
 
 ---
 
-## Service Details
+## 🛠️ Service Details
 
 ### API Service
 
@@ -289,7 +289,7 @@ helm status api-service -n production
 
 ---
 
-##  Contributing
+## 🤝 Contributing
 
 1. Fork repository
 2. Create feature branch
@@ -304,7 +304,7 @@ Coding guidelines:
 
 ---
 
-## Project Status
+## 📌 Project Status
 
 ### ✅ Completed
 
