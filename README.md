@@ -9,11 +9,11 @@
 ## 📋 Table of Contents
 
 - [📘 Project Overview](#-project-overview)
-- [🏗️ System Architecture](#-system-architecture)
- - [☁️ AWS Infrastructure Architecture](#-aws-infrastructure-architecture)
+- [🏗️ System Architecture](#%EF%B8%8F-system-architecture)
+ - [☁️ AWS Infrastructure Architecture](#%EF%B8%8F-aws-infrastructure-architecture)
 - [🧰 Prerequisites](#-prerequisites)
 - [⚡ Quick Start](#-quick-start)
-- [🏗️ Infrastructure Setup](#-infrastructure-setup)
+- [🏗️ Infrastructure Setup](#%EF%B8%8F-infrastructure-setup)
 - [🚢 Application Deployment](#-application-deployment)
 - [🔄 CI/CD Pipeline](#-cicd-pipeline)
 - [📊 Monitoring & Observability](#-monitoring--observability)
