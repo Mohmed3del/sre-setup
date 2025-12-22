@@ -134,11 +134,6 @@ terraform init
 terraform apply
 ```
 
-### 4. Deploy applications
-
-```bash
-kubectl apply -k ./Charts/values/api-service
-```
 
 ---
 
